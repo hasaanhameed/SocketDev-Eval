@@ -231,6 +231,32 @@ npm audit fix --force
 
 </details>
 
-**What this shows:** every finding here is a *known, published* CVE on a specific version
+**What this shows:** every finding here is a _known, published_ CVE on a specific version
 range. Nothing here relates to install scripts, package behavior, or maintainer/publish
 anomalies — that's the gap the Socket CLI scan (next section) is meant to fill.
+
+Socket CLI Scanning:
+
+## Socket CLI scan
+
+From `demo-project`, run:
+
+```
+socket scan create .
+```
+
+This uploads the manifest and gives a link to a full report on the Socket dashboard.
+
+**Result: 46 alerts total** (2 critical, 20 high, 24 medium/low) — vs. npm audit's 19,
+CVE-only findings on the same manifest.
+
+Critical and high priority alerts:
+![Critical and high alerts](screenshots/cli-scan/01-alerts-critical-high.png)
+
+Medium and low priority alerts:
+![Medium and low alerts](screenshots/cli-scan/02-alerts-medium-low.png)
+
+A couple of alerts here have no equivalent in npm audit at all — e.g. `json-schema` flagged
+as **"90.0% likely obfuscated"** (a behavioral/static-analysis finding, not a CVE), and a
+dedicated **"Deprecated by maintainer"** category. Full CLI vs. npm audit comparison table to
+follow once Firewall is tested too.
