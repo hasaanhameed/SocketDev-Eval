@@ -260,3 +260,128 @@ A couple of alerts here have no equivalent in npm audit at all — e.g. `json-sc
 as **"90.0% likely obfuscated"** (a behavioral/static-analysis finding, not a CVE), and a
 dedicated **"Deprecated by maintainer"** category. Full CLI vs. npm audit comparison table to
 follow once Firewall is tested too.
+
+## Socket Firewall (sfw)
+
+Firewall is a **real-time install-time proxy**, not a report — the core distinction from the
+CLI scan above. Setup:
+
+```
+npm i -g sfw
+```
+
+Then instead of `npm install`, prefix it:
+
+```
+sfw npm install
+```
+
+### Normal install (known CVEs, nothing actively malicious)
+
+Run from `demo-project` (same manifest used for `npm audit` and the CLI scan):
+
+```
+PS C:\Users\game\Desktop\socket.dev\demo-project> sfw npm install
+npm warn deprecated har-validator@5.1.5: this library is no longer supported
+npm warn deprecated uuid@3.4.0: uuid@10 and below is no longer supported. For ESM codebases, update to uuid@latest. For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated request@2.88.0: request has been deprecated, see https://github.com/request/request/issues/3142
+
+added 74 packages, and audited 75 packages in 17s
+
+10 packages are looking for funding
+run `npm fund` for details
+
+7 vulnerabilities (3 moderate, 1 high, 3 critical)
+
+To address all issues possible (including breaking changes), run:
+npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+```
+
+The install completed with only ordinary npm/CVE warnings — expected, since nothing in this
+manifest is actively malicious, just outdated.
+
+### Blocking test — installing packages Socket itself flags as live threats
+
+To test whether Firewall actually blocks something malicious, we needed a real, currently
+flagged package. `socket threat-feed` (CLI) returned **403 Forbidden** even with a
+full-scope API token — the threat feed is gated behind a paid plan. The dashboard's **Threat
+Intel → Campaigns** tab also only shows a limited set (2 campaigns, neither npm-ecosystem) with
+an upsell banner to upgrade.
+
+The **Threat Intel → Feed** tab, however, did show live, currently-detected npm packages (also
+capped/limited on free tier, but enough for a test) — including `gleap@16.2.8`,
+`@medusajs/telemetry@2.18.0-preview-20260717064230`, and `@lightdash/cli@0.3405.0`, all marked
+"Live" and detected within hours of testing.
+
+![Threat Intel Feed — live flagged packages](screenshots/firewall/01-threat-intel-feed.png)
+
+**Safety note:** this test was run inside a disposable Docker container (`docker run -it --rm
+node:20 bash`), never on a real machine, specifically because Firewall's own docs admit
+free-tier gaps ("unknown package versions aren't blocked," "AI-detected malware warns but
+doesn't block").
+
+```
+root@23c2ac6ede8a:/test# sfw npm install gleap@16.2.8
+✔ downloading latest sfw binary...
+
+added 21 packages, and audited 22 packages in 11s
+
+2 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+```
+
+```
+root@23c2ac6ede8a:/test# sfw npm install @medusajs/telemetry@2.18.0-preview-20260717064230
+
+added 67 packages, and audited 89 packages in 14s
+
+20 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+```
+
+A third package from the same live feed, `@lightdash/cli@0.3405.0`, was also tested to rule
+out a fluke:
+
+```
+root@23c2ac6ede8a:/test# sfw npm install @lightdash/cli@0.3405.0
+npm warn ERESOLVE overriding peer dependency
+...
+added 514 packages, and audited 603 packages in 5m
+
+93 packages are looking for funding
+  run `npm fund` for details
+
+22 vulnerabilities (4 low, 11 moderate, 7 high)
+```
+
+Same result — installed cleanly, only ordinary npm peer-dependency/deprecation noise, no
+`sfw`-originated warning or block.
+
+**Verification — is the "flagged" version actually what got installed?** Before concluding
+anything, we checked whether npm silently substituted a newer, already-patched version instead
+of the exact flagged one, for all three packages:
+
+```
+root@23c2ac6ede8a:/test# cat node_modules/gleap/package.json | grep '"version"'
+  "version": "16.2.8",
+root@23c2ac6ede8a:/test# cat node_modules/@medusajs/telemetry/package.json | grep '"version"'
+  "version": "2.18.0-preview-20260717064230",
+root@23c2ac6ede8a:/test# cat node_modules/@lightdash/cli/package.json | grep '"version"'
+  "version": "0.3405.0",
+```
+
+Confirmed for all three: the exact versions Socket's own Threat Intel feed lists as "Live" are
+what actually landed in `node_modules`. This rules out "already patched" as an explanation.
+
+**Three for three, with confirmed exact-version matches.** This is the single most important
+finding of this evaluation: **the free-tier Firewall did not block, or even warn about,
+packages Socket's own Threat Intel feed currently flags as actively malicious.**
