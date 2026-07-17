@@ -388,15 +388,11 @@ packages Socket's own Threat Intel feed currently flags as actively malicious.**
 
 ## Comparison
 
-| | `npm audit` | Socket CLI (`scan create`) | Socket Firewall (`sfw`, free tier) |
-|---|---|---|---|
-| **What it checks** | Manifest/lockfile against public CVE database | Manifest/lockfile against Socket's full detection (CVEs + behavior/static analysis) | Packages in real time, at install |
-| **When it runs** | On demand, after the fact | On demand, after the fact | During `npm install` itself |
-| **Findings on our demo manifest** | 19 (CVE-only) | 46 (CVEs + obfuscation + deprecation, etc.) | N/A — doesn't scan a manifest |
-| **Obfuscated code detection** | No | Yes (`json-schema` flagged 90% likely obfuscated) | Not tested / not applicable |
-| **Blocked live-flagged malicious packages (3 tested)** | N/A | N/A (scan-only, doesn't install) | 0 of 3 blocked |
-| **Access to full Threat Intel** | N/A | Partial (CLI `threat-feed` returned 403) | Partial (dashboard feed capped, upsell shown) |
-
-## Verdict
-
-_TBD — pending team discussion._
+|                                                        | `npm audit`                                   | Socket CLI (`scan create`)                                                          | Socket Firewall (`sfw`, free tier)            |
+| ------------------------------------------------------ | --------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| **What it checks**                                     | Manifest/lockfile against public CVE database | Manifest/lockfile against Socket's full detection (CVEs + behavior/static analysis) | Packages in real time, at install             |
+| **When it runs**                                       | On demand, after the fact                     | On demand, after the fact                                                           | During `npm install` itself                   |
+| **Findings on our demo manifest**                      | 19 (CVE-only)                                 | 46 (CVEs + obfuscation + deprecation, etc.)                                         | N/A — doesn't scan a manifest                 |
+| **Obfuscated code detection**                          | No                                            | Yes (`json-schema` flagged 90% likely obfuscated)                                   | Not tested / not applicable                   |
+| **Blocked live-flagged malicious packages (3 tested)** | N/A                                           | N/A (scan-only, doesn't install)                                                    | 0 of 3 blocked                                |
+| **Access to full Threat Intel**                        | N/A                                           | Partial (CLI `threat-feed` returned 403)                                            | Partial (dashboard feed capped, upsell shown) |
